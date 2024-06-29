@@ -818,7 +818,7 @@ export default class LoginSession extends TypedEmitter<LoginSessionEvents> {
 		let body = {
 			nonce: this.refreshToken,
 			sessionid: sessionId,
-			redir: 'https://steamcommunity.com/login/home/?goto='
+			redir: 'https://checkout.steampowered.com/login/?purchasetype=self&checkout=1&redir=checkout/?accountcart=1&redir_ssl=1'
 		};
 
 		debug('POST https://login.steampowered.com/jwt/finalizelogin %o', body);
