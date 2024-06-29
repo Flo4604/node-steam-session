@@ -859,6 +859,8 @@ export default class LoginSession extends TypedEmitter<LoginSessionEvents> {
 			err.responseBody = finalizeResponse.jsonBody;
 			throw err;
 		}
+		
+		let cookies:string[] = finalizeResponse.headers['set-cookie']
 
 		// Now we want to execute all transfers specified in the finalizelogin response. Technically we only need one
 		// successful transfer (hence the usage of promsieAny), but we execute them all for robustness in case one fails.
@@ -888,13 +890,13 @@ export default class LoginSession extends TypedEmitter<LoginSessionEvents> {
 
 			let domain = new URL(url).host;
 			resolve(
-				result.headers['set-cookie'].concat(finalizeResponse.headers['set-cookie']).map(
+				result.headers['set-cookie'].map(
 					cookie => !cookie.toLowerCase().includes('domain=') ? `${cookie}; Domain=${domain}` : cookie
 				)
 			);
 		}));
 
-		let cookies:string[] = [];
+
 		(await Promise.all(transfers)).forEach((domainCookies) => {
 			cookies = cookies.concat(domainCookies);
 		});
@@ -907,6 +909,13 @@ export default class LoginSession extends TypedEmitter<LoginSessionEvents> {
 		  this.ak_bmsc = akbmsc
 		} else if (this.ak_bmsc) {
       cookies.push(this.ak_bmsc)
+		}
+		
+		const bmsv = cookies.find(c => c.startsWith('bmsv='));
+		if (bmsv && !this.bm_sv) {
+		  this.bm_sv = bmsv
+		} else if (this.bm_sv) {
+      cookies.push(this.bm_sv)
 		}
 
 		// Now add in a sessionid cookie
