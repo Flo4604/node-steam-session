@@ -820,6 +820,8 @@ export default class LoginSession extends TypedEmitter<LoginSessionEvents> {
 			sessionid: sessionId,
 			redir: 'https://checkout.steampowered.com/login/?purchasetype=self&checkout=1&redir=checkout/?accountcart=1&redir_ssl=1'
 		};
+		
+
 
 		debug('POST https://login.steampowered.com/jwt/finalizelogin %o', body);
 		let finalizeResponse = await this._webClient.request({
@@ -828,7 +830,9 @@ export default class LoginSession extends TypedEmitter<LoginSessionEvents> {
 			headers: API_HEADERS,
 			multipartForm: HttpClient.simpleObjectToMultipartForm(body)
 		});
-
+		
+		debug('POST https://login.steampowered.com/jwt/finalizelogin %o %o', finalizeResponse, finalizeResponse.headers);
+		
 		if (finalizeResponse.jsonBody && finalizeResponse.jsonBody.error) {
 			throw eresultError(finalizeResponse.jsonBody.error);
 		}
