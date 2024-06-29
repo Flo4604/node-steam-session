@@ -799,6 +799,7 @@ export default class LoginSession extends TypedEmitter<LoginSessionEvents> {
 		}
 
 		let sessionId = randomBytes(12).toString('hex');
+		let cookieValue = encodeURIComponent([this.steamID.getSteamID64(), this.accessToken].join('||'));
 
 		// If our platform type is MobileApp or SteamClient, then our access token *is* our session cookie.
 		// The same is likely true for WebBrowser, but we want to mimic official behavior as closely as possible to avoid
@@ -811,7 +812,6 @@ export default class LoginSession extends TypedEmitter<LoginSessionEvents> {
 				await this.refreshAccessToken();
 			}
 
-			let cookieValue = encodeURIComponent([this.steamID.getSteamID64(), this.accessToken].join('||'));
 			return [`steamLoginSecure=${cookieValue}`, `sessionid=${sessionId}`];
 		}
 
@@ -821,18 +821,22 @@ export default class LoginSession extends TypedEmitter<LoginSessionEvents> {
 			redir: 'https://checkout.steampowered.com/login/?purchasetype=self&checkout=1&redir=checkout/?accountcart=1&redir_ssl=1'
 		};
 		
-
+		const headers = API_HEADERS
+		headers['Cookie'] = `steamRefresh_steam=${cookieValue}`
+		headers['Origin'] = 'https://checkout.steampowered.com'
+		headers['Host'] = 'login.steampowered.com'
+		headers['Referer'] = 'https://checkout.steampowered.com/'
 
 		debug('POST https://login.steampowered.com/jwt/finalizelogin %o', body);
 		let finalizeResponse = await this._webClient.request({
 			method: 'POST',
 			url: 'https://login.steampowered.com/jwt/finalizelogin',
-			headers: API_HEADERS,
+			headers: headers,
 			multipartForm: HttpClient.simpleObjectToMultipartForm(body)
 		});
-		
+
 		debug('POST https://login.steampowered.com/jwt/finalizelogin %o %o', finalizeResponse, finalizeResponse.headers);
-		
+
 		if (finalizeResponse.jsonBody && finalizeResponse.jsonBody.error) {
 			throw eresultError(finalizeResponse.jsonBody.error);
 		}
@@ -871,7 +875,7 @@ export default class LoginSession extends TypedEmitter<LoginSessionEvents> {
 
 			let domain = new URL(url).host;
 			resolve(
-				result.headers['set-cookie'].map(
+				result.headers['set-cookie'].concat(finalizeResponse.headers['set-cookie']).map(
 					cookie => !cookie.toLowerCase().includes('domain=') ? `${cookie}; Domain=${domain}` : cookie
 				)
 			);
