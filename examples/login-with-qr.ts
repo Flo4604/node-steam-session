@@ -30,6 +30,10 @@ async function main() {
 		let webCookies = await session.getWebCookies();
 		console.log('Web session cookies:');
 		console.log(webCookies);
+		
+		let webCookies2 = await session.getWebCookies();
+		console.log('Web session cookies2:');
+		console.log(webCookies2);
 	});
 
 	session.on('timeout', () => {

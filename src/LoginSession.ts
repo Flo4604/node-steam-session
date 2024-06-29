@@ -86,6 +86,9 @@ export default class LoginSession extends TypedEmitter<LoginSessionEvents> {
 	private _pollingCanceled?: boolean;
 
 	private _accessTokenSetAt?: Date;
+	
+	private _akBsmc?: string;
+	private _bm_sv?: string;
 
 	/**
 	 * @param {EAuthTokenPlatformType} platformType - A value from {@link EAuthTokenPlatformType}.
@@ -264,6 +267,12 @@ export default class LoginSession extends TypedEmitter<LoginSessionEvents> {
 		this._accessToken = token;
 		this._accessTokenSetAt = new Date();
 	}
+
+	get ak_bmsc(): string { return this._akBsmc; }
+	set ak_bmsc(akBsmc: string) {	this._akBsmc = akBsmc; }
+
+	get bm_sv(): string { return this._bm_sv; }
+	set bm_sv(bm_sv: string) {	this._bm_sv = bm_sv; }
 
 	/**
 	 * A `string` containing your refresh token. This is populated just before the {@link authenticated} event is fired.
@@ -820,12 +829,16 @@ export default class LoginSession extends TypedEmitter<LoginSessionEvents> {
 			sessionid: sessionId,
 			redir: 'https://checkout.steampowered.com/login/?purchasetype=self&checkout=1&redir=checkout/?accountcart=1&redir_ssl=1'
 		};
-		
+
 		const headers = API_HEADERS
-		headers['Cookie'] = `steamRefresh_steam=${cookieValue}`
+		headers['Cookie'] = `steamRefresh_steam=${cookieValue};`
 		headers['Origin'] = 'https://checkout.steampowered.com'
 		headers['Host'] = 'login.steampowered.com'
 		headers['Referer'] = 'https://checkout.steampowered.com/'
+		
+		if (this.ak_bmsc ) {
+      headers['Cookie'] += this.ak_bmsc;
+		}
 
 		debug('POST https://login.steampowered.com/jwt/finalizelogin %o', body);
 		let finalizeResponse = await this._webClient.request({
@@ -888,6 +901,13 @@ export default class LoginSession extends TypedEmitter<LoginSessionEvents> {
 
 		// Filter out any sessionid cookies we might have, since we want to set one that works for everything
 		cookies = cookies.filter(c => !c.startsWith('sessionid='));
+
+		const akbmsc = cookies.find(c => c.startsWith('ak_bmsc='));
+		if (akbmsc && !this.ak_bmsc) {
+		  this.ak_bmsc = akbmsc
+		} else if (this.ak_bmsc) {
+      cookies.push(this.ak_bmsc)
+		}
 
 		// Now add in a sessionid cookie
 		cookies.push(`sessionid=${sessionId}`);
